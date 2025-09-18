@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>TMDb Film Finder</title>
+<title>Film Finder TMDb</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -73,11 +73,10 @@
 </head>
 <body>
 <header>
-  <h1>🎥 TMDb Finder</h1>
+  <h1>🎬 Film Finder (TMDb)</h1>
   <div id="controls">
-    <input id="searchBar" placeholder="Cerca titolo (anche in italiano)">
+    <input id="searchBar" placeholder="Titolo (in italiano)">
     <select id="typeFilter">
-      <option value="">Tutti</option>
       <option value="movie">Film</option>
       <option value="tv">Serie TV</option>
     </select>
@@ -88,16 +87,14 @@
 <div id="movies"></div>
 
 <script>
-const API_KEY = "03b717a8df4a629a089fb94aa8a2da00"; // La tua chiave API TMDb
-const BASE_URL = "https://api.themoviedb.org/3";
-const IMG_BASE = "https://image.tmdb.org/t/p/w500";
+const API_KEY = "03b717a8df4a629a089fb94aa8a2da00"; // <--- QUI la tua API Key
 
-document.getElementById('go').addEventListener('click', searchTMDb);
+document.getElementById('go').addEventListener('click', searchMovies);
 document.getElementById('searchBar').addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') searchTMDb();
+  if (e.key === 'Enter') searchMovies();
 });
 
-function searchTMDb() {
+function searchMovies() {
   const query = document.getElementById('searchBar').value.trim();
   const type = document.getElementById('typeFilter').value;
   const year = document.getElementById('yearFilter').value.trim();
@@ -107,43 +104,38 @@ function searchTMDb() {
     return;
   }
 
-  document.getElementById('movies').innerHTML = "<p>⏳ Caricamento...</p>";
+  document.getElementById('movies').innerHTML = "⏳ Caricamento...";
 
-  let endpoint = `${BASE_URL}/search/${type || 'multi'}?api_key=${API_KEY}&language=it-IT&query=${encodeURIComponent(query)}`;
-  
-  // Aggiungiamo il filtro anno solo se specificato e tipo non è 'multi'
-  if (year && type === "movie") {
-    endpoint += `&primary_release_year=${year}`;
-  } else if (year && type === "tv") {
-    endpoint += `&first_air_date_year=${year}`;
+  let url = `https://api.themoviedb.org/3/search/${type}?api_key=${API_KEY}&language=it-IT&query=${encodeURIComponent(query)}`;
+  if (year) {
+    if (type === "movie") {
+      url += `&year=${year}`;
+    } else if (type === "tv") {
+      url += `&first_air_date_year=${year}`;
+    }
   }
 
-  fetch(endpoint)
+  fetch(url)
     .then(res => res.json())
     .then(data => {
-      if (data.results && data.results.length > 0) {
-        document.getElementById('movies').innerHTML = data.results.map(item => {
-          const titolo = item.title || item.name;
-          const dataUscita = item.release_date || item.first_air_date || "N/D";
-          const tipo = item.media_type || type || "movie";
-          return `
-            <div class="card">
-              <img src="${item.poster_path ? IMG_BASE + item.poster_path : 'https://via.placeholder.com/300x450?text=No+Image'}" alt="${titolo}">
-              <div class="card-content">
-                <h2>${titolo} (${dataUscita.substring(0,4)})</h2>
-                <p><strong>Tipo:</strong> ${tipo}</p>
-                <p>${item.overview || "Nessuna trama disponibile."}</p>
-              </div>
+      if (data.results.length > 0) {
+        document.getElementById('movies').innerHTML = data.results.map(item => `
+          <div class="card">
+            <img src="https://image.tmdb.org/t/p/w500${item.poster_path || ''}" alt="${type === 'movie' ? item.title : item.name}">
+            <div class="card-content">
+              <h2>${type === 'movie' ? item.title : item.name} (${(type === 'movie' ? item.release_date : item.first_air_date || '').slice(0,4)})</h2>
+              <p><strong>Voto:</strong> ⭐ ${item.vote_average}</p>
+              <p>${item.overview || "Nessuna trama disponibile."}</p>
             </div>
-          `;
-        }).join('');
+          </div>
+        `).join('');
       } else {
         document.getElementById('movies').innerHTML = "<p>❌ Nessun risultato trovato</p>";
       }
     })
     .catch(err => {
       console.error(err);
-      document.getElementById('movies').innerHTML = "<p>⚠️ Errore nel caricamento dei dati</p>";
+      document.getElementById('movies').innerHTML = "<p>⚠️ Errore nel caricamento</p>";
     });
 }
 </script>
