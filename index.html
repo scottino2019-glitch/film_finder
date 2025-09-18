@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Film Finder TMDb</title>
+<title>Film Finder con TMDB</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -20,8 +20,8 @@
     display: flex;
     justify-content: center;
     gap: 10px;
-    flex-wrap: wrap;
     margin-top: 10px;
+    flex-wrap: wrap;
   }
   select, input, button {
     padding: 10px;
@@ -73,9 +73,9 @@
 </head>
 <body>
 <header>
-  <h1>🎬 TMDb Film Finder</h1>
+  <h1>🎬 Film Finder (TMDB)</h1>
   <div id="controls">
-    <input id="searchBar" placeholder="Cerca titolo (anche in italiano)">
+    <input id="searchBar" placeholder="Cerca un titolo">
     <select id="typeFilter">
       <option value="multi">Tutti</option>
       <option value="movie">Film</option>
@@ -88,53 +88,50 @@
 <div id="movies"></div>
 
 <script>
-const API_KEY = "03b717a8df4a629a089fb94aa8a2da00"; 
+const API_KEY = "03b717a8df4a629a089fb94aa8a2da00"; // ⬅️ Sostituisci con la tua API key
 const BASE_IMG = "https://image.tmdb.org/t/p/w500";
 
-document.getElementById('go').addEventListener('click', searchTMDb);
-document.getElementById('searchBar').addEventListener('keypress', e => {
-  if (e.key === 'Enter') searchTMDb();
+document.getElementById('go').addEventListener('click', searchTMDB);
+document.getElementById('searchBar').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') searchTMDB();
 });
 
-function searchTMDb() {
+function searchTMDB() {
   const query = document.getElementById('searchBar').value.trim();
   const type = document.getElementById('typeFilter').value;
   const year = document.getElementById('yearFilter').value.trim();
 
   if (!query) {
-    alert("Inserisci un titolo 🎬");
+    alert("Inserisci un titolo da cercare 🎬");
     return;
   }
 
   document.getElementById('movies').innerHTML = "<p>⏳ Caricamento...</p>";
 
-  let url = `https://api.themoviedb.org/3/search/${type}?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=it-IT`;
+  let url = `https://api.themoviedb.org/3/search/${type}?api_key=${API_KEY}&language=it-IT&query=${encodeURIComponent(query)}`;
   
-  // Anno: TMDb usa 'year' per film e 'first_air_date_year' per serie
   if (year) {
-    if (type === "tv") {
-      url += `&first_air_date_year=${year}`;
-    } else {
+    if (type === "movie") {
       url += `&year=${year}`;
+    } else if (type === "tv") {
+      url += `&first_air_date_year=${year}`;
     }
   }
 
   fetch(url)
     .then(res => res.json())
     .then(data => {
-      if (data.results.length > 0) {
+      if (data.results && data.results.length > 0) {
         document.getElementById('movies').innerHTML = data.results.map(item => {
-          const titolo = item.title || item.name;
-          const dataUscita = item.release_date || item.first_air_date || "N/A";
-          const anno = dataUscita ? dataUscita.split("-")[0] : "N/A";
-          const poster = item.poster_path ? BASE_IMG + item.poster_path : "https://via.placeholder.com/300x450?text=Nessuna+Immagine";
-          const trama = item.overview || "Trama non disponibile";
+          const title = item.title || item.name; // Film hanno title, Serie hanno name
+          const date = item.release_date || item.first_air_date || "N/D";
+          const yearOut = date ? date.split("-")[0] : "N/D";
           return `
             <div class="card">
-              <img src="${poster}" alt="${titolo}">
+              <img src="${item.poster_path ? BASE_IMG + item.poster_path : 'https://via.placeholder.com/300x450?text=No+Image'}" alt="${title}">
               <div class="card-content">
-                <h2>${titolo} (${anno})</h2>
-                <p>${trama}</p>
+                <h2>${title} (${yearOut})</h2>
+                <p>${item.overview || "Nessuna trama disponibile."}</p>
               </div>
             </div>
           `;
@@ -145,7 +142,7 @@ function searchTMDb() {
     })
     .catch(err => {
       console.error(err);
-      document.getElementById('movies').innerHTML = "<p>⚠️ Errore nel caricamento</p>";
+      document.getElementById('movies').innerHTML = "<p>⚠️ Errore nel caricamento dei dati</p>";
     });
 }
 </script>
