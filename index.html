@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Film Finder TMDb</title>
+<title>TMDb Film Finder</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -73,9 +73,9 @@
 </head>
 <body>
 <header>
-  <h1>🎬 Film Finder (TMDb)</h1>
+  <h1>🎬 TMDb Film Finder</h1>
   <div id="controls">
-    <input id="searchBar" placeholder="Titolo (in italiano)">
+    <input id="searchBar" placeholder="Cerca titolo">
     <select id="typeFilter">
       <option value="movie">Film</option>
       <option value="tv">Serie TV</option>
@@ -87,7 +87,8 @@
 <div id="movies"></div>
 
 <script>
-const API_KEY = "03b717a8df4a629a089fb94aa8a2da00"; // <--- QUI la tua API Key
+const API_KEY = "03b717a8df4a629a089fb94aa8a2da00"; // ⚠️ Inserisci qui la tua API Key TMDb
+const IMG_BASE = "https://image.tmdb.org/t/p/w500";
 
 document.getElementById('go').addEventListener('click', searchMovies);
 document.getElementById('searchBar').addEventListener('keypress', (e) => {
@@ -110,7 +111,7 @@ function searchMovies() {
   if (year) {
     if (type === "movie") {
       url += `&year=${year}`;
-    } else if (type === "tv") {
+    } else {
       url += `&first_air_date_year=${year}`;
     }
   }
@@ -118,14 +119,14 @@ function searchMovies() {
   fetch(url)
     .then(res => res.json())
     .then(data => {
-      if (data.results.length > 0) {
+      if (data.results && data.results.length > 0) {
         document.getElementById('movies').innerHTML = data.results.map(item => `
           <div class="card">
-            <img src="https://image.tmdb.org/t/p/w500${item.poster_path || ''}" alt="${type === 'movie' ? item.title : item.name}">
+            <img src="${item.poster_path ? IMG_BASE + item.poster_path : 'https://via.placeholder.com/300x450?text=No+Image'}" alt="${item.title || item.name}">
             <div class="card-content">
-              <h2>${type === 'movie' ? item.title : item.name} (${(type === 'movie' ? item.release_date : item.first_air_date || '').slice(0,4)})</h2>
+              <h2>${item.title || item.name} (${(item.release_date || item.first_air_date || '').split('-')[0] || 'N/D'})</h2>
               <p><strong>Voto:</strong> ⭐ ${item.vote_average}</p>
-              <p>${item.overview || "Nessuna trama disponibile."}</p>
+              <p>${item.overview ? item.overview : 'Nessuna trama disponibile.'}</p>
             </div>
           </div>
         `).join('');
