@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Film Finder - TMDb</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+  }
+  header {
+    background-color: #222;
+    color: white;
+    padding: 20px;
+    text-align: center;
+  }
+  #controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  select, input, button {
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    font-size: 14px;
+  }
+  #go {
+    background-color: #ff6600;
+    color: white;
+    cursor: pointer;
+  }
+  #go:hover {
+    background-color: #e65c00;
+  }
+  #movies {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    padding: 20px;
+  }
+  .card {
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+  }
+  .card:hover {
+    transform: scale(1.02);
+  }
+  .card img {
+    width: 100%;
+    height: 380px;
+    object-fit: cover;
+  }
+  .card-content {
+    padding: 10px;
+  }
+  .card h2 {
+    font-size: 18px;
+    margin: 0 0 5px 0;
+  }
+  .card p {
+    font-size: 14px;
+    color: #555;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎬 Film Finder (TMDb)</h1>
+  <div id="controls">
+    <input id="searchBar" placeholder="Titolo (anche in italiano)">
+    <select id="typeFilter">
+      <option value="">Tutti</option>
+      <option value="movie">Film</option>
+      <option value="tv">Serie</option>
+    </select>
+    <input id="yearFilter" placeholder="Anno" type="number" min="1900" max="2099">
+    <button id="go">Cerca</button>
+  </div>
+</header>
+<div id="movies"></div>
+
+<script>
+const API_KEY = "LA_TUA_API_KEY"; // 🔑 Inserisci qui la tua TMDb API Key
+const IMG_BASE = "https://image.tmdb.org/t/p/w500";
+
+document.getElementById('go').addEventListener('click', searchMovies);
+document.getElementById('searchBar').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') searchMovies();
+});
+
+function searchMovies() {
+  const q = document.getElementById('searchBar').value.trim();
+  const type = document.getElementById('typeFilter').value;
+  const year = document.getElementById('yearFilter').value.trim();
+
+  if (!q) {
+    alert("Inserisci un titolo 🎬");
+    return;
+  }
+
+  document.getElementById('movies').innerHTML = "<p>⏳ Caricamento...</p>";
+  
+  // Scegliamo l'endpoint a seconda del tipo
+  let endpoint = "multi";
+  if (type === "movie") endpoint = "movie";
+  if (type === "tv") endpoint = "tv";
+
+  let url;
+  if (endpoint === "multi") {
+    url = `https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(q)}&language=it-IT`;
+  } else {
+    url = `https://api.themoviedb.org/3/search/${endpoint}?api_key=${API_KEY}&query=${encodeURIComponent(q)}&language=it-IT`;
+  }
+  if (year) {
+    if (type === "movie") url += `&year=${year}`;
+    if (type === "tv") url += `&first_air_date_year=${year}`;
+  }
+
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      if (data.results && data.results.length > 0) {
+        document.getElementById('movies').innerHTML = data.results.map(item => {
+          const title = item.title || item.name;
+          const date = item.release_date || item.first_air_date || "N/A";
+          return `
+            <div class="card">
+              <img src="${item.poster_path ? IMG_BASE + item.poster_path : 'https://via.placeholder.com/300x450?text=No+Image'}" alt="${title}">
+              <div class="card-content">
+                <h2>${title} (${date ? date.slice(0,4) : "N/A"})</h2>
+                <p><strong>Tipo:</strong> ${item.media_type || type}</p>
+                <p>${item.overview || "Nessuna descrizione disponibile."}</p>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        document.getElementById('movies').innerHTML = `<p>❌ Nessun risultato trovato</p>`;
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      document.getElementById('movies').innerHTML = `<p>⚠️ Errore nella ricerca</p>`;
+    });
+}
+</script>
+</body>
+</html>
