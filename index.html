@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>TMDb Film Finder</title>
+<title>Film Finder TMDb</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -20,8 +20,8 @@
     display: flex;
     justify-content: center;
     gap: 10px;
-    margin-top: 10px;
     flex-wrap: wrap;
+    margin-top: 10px;
   }
   select, input, button {
     padding: 10px;
@@ -75,8 +75,9 @@
 <header>
   <h1>🎬 TMDb Film Finder</h1>
   <div id="controls">
-    <input id="searchBar" placeholder="Cerca titolo">
+    <input id="searchBar" placeholder="Cerca titolo (anche in italiano)">
     <select id="typeFilter">
+      <option value="multi">Tutti</option>
       <option value="movie">Film</option>
       <option value="tv">Serie TV</option>
     </select>
@@ -87,15 +88,15 @@
 <div id="movies"></div>
 
 <script>
-const API_KEY = "03b717a8df4a629a089fb94aa8a2da00"; // ⚠️ Inserisci qui la tua API Key TMDb
-const IMG_BASE = "https://image.tmdb.org/t/p/w500";
+const API_KEY = "03b717a8df4a629a089fb94aa8a2da00"; 
+const BASE_IMG = "https://image.tmdb.org/t/p/w500";
 
-document.getElementById('go').addEventListener('click', searchMovies);
-document.getElementById('searchBar').addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') searchMovies();
+document.getElementById('go').addEventListener('click', searchTMDb);
+document.getElementById('searchBar').addEventListener('keypress', e => {
+  if (e.key === 'Enter') searchTMDb();
 });
 
-function searchMovies() {
+function searchTMDb() {
   const query = document.getElementById('searchBar').value.trim();
   const type = document.getElementById('typeFilter').value;
   const year = document.getElementById('yearFilter').value.trim();
@@ -105,31 +106,39 @@ function searchMovies() {
     return;
   }
 
-  document.getElementById('movies').innerHTML = "⏳ Caricamento...";
+  document.getElementById('movies').innerHTML = "<p>⏳ Caricamento...</p>";
 
-  let url = `https://api.themoviedb.org/3/search/${type}?api_key=${API_KEY}&language=it-IT&query=${encodeURIComponent(query)}`;
+  let url = `https://api.themoviedb.org/3/search/${type}?api_key=${API_KEY}&query=${encodeURIComponent(query)}&language=it-IT`;
+  
+  // Anno: TMDb usa 'year' per film e 'first_air_date_year' per serie
   if (year) {
-    if (type === "movie") {
-      url += `&year=${year}`;
-    } else {
+    if (type === "tv") {
       url += `&first_air_date_year=${year}`;
+    } else {
+      url += `&year=${year}`;
     }
   }
 
   fetch(url)
     .then(res => res.json())
     .then(data => {
-      if (data.results && data.results.length > 0) {
-        document.getElementById('movies').innerHTML = data.results.map(item => `
-          <div class="card">
-            <img src="${item.poster_path ? IMG_BASE + item.poster_path : 'https://via.placeholder.com/300x450?text=No+Image'}" alt="${item.title || item.name}">
-            <div class="card-content">
-              <h2>${item.title || item.name} (${(item.release_date || item.first_air_date || '').split('-')[0] || 'N/D'})</h2>
-              <p><strong>Voto:</strong> ⭐ ${item.vote_average}</p>
-              <p>${item.overview ? item.overview : 'Nessuna trama disponibile.'}</p>
+      if (data.results.length > 0) {
+        document.getElementById('movies').innerHTML = data.results.map(item => {
+          const titolo = item.title || item.name;
+          const dataUscita = item.release_date || item.first_air_date || "N/A";
+          const anno = dataUscita ? dataUscita.split("-")[0] : "N/A";
+          const poster = item.poster_path ? BASE_IMG + item.poster_path : "https://via.placeholder.com/300x450?text=Nessuna+Immagine";
+          const trama = item.overview || "Trama non disponibile";
+          return `
+            <div class="card">
+              <img src="${poster}" alt="${titolo}">
+              <div class="card-content">
+                <h2>${titolo} (${anno})</h2>
+                <p>${trama}</p>
+              </div>
             </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       } else {
         document.getElementById('movies').innerHTML = "<p>❌ Nessun risultato trovato</p>";
       }
